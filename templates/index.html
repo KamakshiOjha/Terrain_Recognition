@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Terrain Classification</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f7fa;
+            color: #333;
+        }
+        .container {
+            width: 90%;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            text-align: center;
+            padding: 30px 0;
+        }
+        .header h1 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+        .header p {
+            color: #7f8c8d;
+            font-size: 1.1em;
+        }
+        .upload-section {
+            background-color: white;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+        }
+        .upload-container {
+            border: 2px dashed #3498db;
+            border-radius: 8px;
+            padding: 40px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .upload-container:hover {
+            border-color: #2980b9;
+            background-color: #f8f9fa;
+        }
+        .upload-icon {
+            font-size: 48px;
+            color: #3498db;
+            margin-bottom: 15px;
+        }
+        .upload-text {
+            color: #7f8c8d;
+            margin-bottom: 15px;
+        }
+        .file-input {
+            display: none;
+        }
+        .btn {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+        .btn:hover {
+            background-color: #2980b9;
+        }
+        .result-section {
+            background-color: white;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            display: none;
+        }
+        .result-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .result-image-container {
+            width: 100%;
+            max-width: 400px;
+            margin-bottom: 20px;
+        }
+        .result-image {
+            width: 100%;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .result-label {
+            font-size: 28px;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+        .result-confidence {
+            font-size: 18px;
+            color: #7f8c8d;
+            margin-bottom: 20px;
+        }
+        .terrain-info {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            width: 100%;
+        }
+        .terrain-info h3 {
+            margin-top: 0;
+            color: #2c3e50;
+        }
+        .terrain-info p {
+            line-height: 1.6;
+            color: #34495e;
+        }
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .category-indicator {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+        .grassy {
+            background-color: #2ecc71;
+            color: white;
+        }
+        .marshy {
+            background-color: #9b59b6;
+            color: white;
+        }
+        .rocky {
+            background-color: #e67e22;
+            color: white;
+        }
+        .sandy {
+            background-color: #f1c40f;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Terrain Classification</h1>
+            <p>Upload an image to classify its terrain type</p>
+        </div>
+        
+        <div class="upload-section">
+            <div class="upload-container" id="uploadContainer">
+                <div class="upload-icon">📁</div>
+                <p class="upload-text">Drag & drop an image here or click to browse</p>
+                <input type="file" id="fileInput" class="file-input" accept="image/*">
+                <button class="btn" id="uploadBtn">Upload Image</button>
+            </div>
+        </div>
+
+        <div class="loading" id="loadingSection">
+            <div class="loading-spinner"></div>
+            <p>Analyzing terrain...</p>
+        </div>
+        
+        <div class="result-section" id="resultSection">
+            <div class="result-container">
+                <div class="result-image-container">
+                    <img id="resultImage" class="result-image" src="" alt="Uploaded terrain">
+                </div>
+                <div class="category-indicator" id="categoryIndicator">Category</div>
+                <h2 class="result-label" id="resultLabel">Terrain Type</h2>
+                <p class="result-confidence" id="resultConfidence">Confidence: 95%</p>
+                
+                <div class="terrain-info" id="terrainInfo">
+                    <h3>About this terrain</h3>
+                    <p id="terrainDescription">Loading terrain information...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const uploadContainer = document.getElementById('uploadContainer');
+            const fileInput = document.getElementById('fileInput');
+            const uploadBtn = document.getElementById('uploadBtn');
+            const loadingSection = document.getElementById('loadingSection');
+            const resultSection = document.getElementById('resultSection');
+            const resultImage = document.getElementById('resultImage');
+            const resultLabel = document.getElementById('resultLabel');
+            const resultConfidence = document.getElementById('resultConfidence');
+            const terrainDescription = document.getElementById('terrainDescription');
+            const categoryIndicator = document.getElementById('categoryIndicator');
+            
+            // Event listeners for file upload
+            uploadContainer.addEventListener('click', () => {
+                fileInput.click();
+            });
+            
+            uploadBtn.addEventListener('click', () => {
+                fileInput.click();
+            });
+            
+            // Handle drag and drop
+            uploadContainer.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadContainer.style.borderColor = '#2980b9';
+                uploadContainer.style.backgroundColor = '#f8f9fa';
+            });
+            
+            uploadContainer.addEventListener('dragleave', () => {
+                uploadContainer.style.borderColor = '#3498db';
+                uploadContainer.style.backgroundColor = 'transparent';
+            });
+            
+            uploadContainer.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadContainer.style.borderColor = '#3498db';
+                uploadContainer.style.backgroundColor = 'transparent';
+                
+                if (e.dataTransfer.files.length) {
+                    fileInput.files = e.dataTransfer.files;
+                    processFile(e.dataTransfer.files[0]);
+                }
+            });
+            
+            fileInput.addEventListener('change', () => {
+                if (fileInput.files.length) {
+                    processFile(fileInput.files[0]);
+                }
+            });
+            
+            // Process the uploaded file
+            function processFile(file) {
+                if (!file || !file.type.match('image.*')) {
+                    alert('Please upload an image file.');
+                    return;
+                }
+                
+                // Show loading animation
+                loadingSection.style.display = 'block';
+                resultSection.style.display = 'none';
+                
+                // Create form data for API call
+                const formData = new FormData();
+                formData.append('image', file);
+                
+                // Send image to server for prediction
+                fetch('/predict', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Display image
+                        resultImage.src = data.image;
+                        
+                        // Update result display
+                        const terrainType = data.class;
+                        resultLabel.textContent = terrainType.charAt(0).toUpperCase() + terrainType.slice(1) + ' Terrain';
+                        resultConfidence.textContent = `Confidence: ${data.confidence.toFixed(1)}%`;
+                        
+                        // Set category indicator
+                        categoryIndicator.textContent = terrainType.charAt(0).toUpperCase() + terrainType.slice(1);
+                        categoryIndicator.className = 'category-indicator ' + terrainType;
+                        
+                        // Set terrain description
+                        terrainDescription.textContent = getTerrainDescription(terrainType);
+                        
+                        // Show results
+                        loadingSection.style.display = 'none';
+                        resultSection.style.display = 'block';
+                    } else {
+                        alert('Error: ' + (data.error || 'Unknown error during prediction'));
+                        loadingSection.style.display = 'none';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error processing the image. Please try again.');
+                    loadingSection.style.display = 'none';
+                });
+            }
+            
+            // Get description for each terrain type
+            function getTerrainDescription(terrainType) {
+                const descriptions = {
+                    'grassy': 'Grassy terrain is characterized by abundant vegetation, primarily grasses and small plants. These areas typically receive moderate rainfall and have good soil conditions that support plant growth. Grassy terrains are common in prairies, meadows, and savanna ecosystems.',
+                    'marshy': 'Marshy terrain is waterlogged ground where water covers the surface for long periods. These wetland areas feature soft, muddy soil and aquatic vegetation like reeds and cattails. Marshes play crucial roles in ecosystems by filtering water and providing habitat for diverse wildlife.',
+                    'rocky': 'Rocky terrain consists primarily of exposed rock surfaces with minimal soil coverage. These areas may feature boulders, cliffs, or rocky outcrops. Rocky terrains are often found in mountainous regions, canyons, and areas with significant erosion.',
+                    'sandy': 'Sandy terrain is dominated by loose sand particles, creating a distinctive texture and appearance. These areas may include beaches, deserts, and dunes. Sandy terrains typically have poor water retention and specific plant adaptations for survival in these challenging conditions.'
+                };
+                
+                return descriptions[terrainType] || 'No information available for this terrain type.';
+            }
+        });
+    </script>
+</body>
+</html>
